@@ -1,0 +1,57 @@
+---
+vm_networks:
+  google:
+    network: 10.4.0.0/20
+  azure:
+    network: 10.3.0.0/24
+  aws:
+    network: 10.2.0.0/20
+  vmware:
+    network: 10.1.0.0/24
+    gateway: 10.1.0.1
+
+vm_os_map:
+  google:
+    linux-RHEL8: projects/rhel-cloud/global/images/rhel-8-v20220406
+    windows-Win2019:
+  azure:
+    linux-RHEL8:
+      offer: RHEL
+      sku: 82gen2
+      version: latest
+      publisher: RedHat
+    windows-Win2019:
+      offer: WindowsServer
+      sku: 2019-datacenter-gensecond
+      version: latest
+      publisher: MicrosoftWindowsServer
+  aws:
+    linux-RHEL8: ami-092b43193629811af
+    windows-Win2019: ami-0bc50665a28783253
+  vmware:
+    linux-RHEL8: TEMPLATE_RHEL_8.4
+    windows-Win2019: template_windows_2019_zach
+
+vm_size_map:
+  google:
+    small: e2-standard-2 # 2 CPU, 8gb RAM
+    medium: e2-standard-4 # 4 CPU, 16gb RAM
+    large: e2-standard-8 # 8 CPU, 32gb RAM
+  azure:
+    small: Standard_D2s_v3 # 2 CPU, 8gb RAM
+    medium: Standard_D4s_v3 # 4 CPU, 16gb RAM
+    large: Standard_D8s_v3 # 8 CPU, 32gb RAM
+  aws:
+    small: m5.large # 2 CPU, 8gb RAM
+    medium: m5.xlarge # 4 CPU, 16gb RAM
+    large: m5.2xlarge # 8 CPU, 32gb RAM
+  vmware:
+    small:
+      memory_mb: 8192
+      num_cpus: 2
+    medium:
+      memory_mb: 16384
+      num_cpus: 4
+    large:
+      memory_mb: 32768
+      num_cpus: 8

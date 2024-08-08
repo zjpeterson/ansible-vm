@@ -1,0 +1,26 @@
+---
+- name: Provision VMware VM
+  community.vmware.vmware_guest:
+    folder: /Central/vm/Ansible/Zach
+    datacenter: Central
+    cluster: Tigers
+    name: "{{ vm_name }}"
+    state: "{% if vm_state == 'present' %}poweredon{% else %}{{ vm_state }}{% endif %}"
+    force: "{% if vm_state == 'absent' %}yes{% else %}no{% endif %}"
+    template: "{{ vm_image | default(omit) }}"
+    disk:
+    - size_gb: "{{ vm_disk_gb }}"
+      type: thin
+      datastore: SSD
+    hardware: "{{ vm_hardware | default(omit) }}"
+    networks:
+    - name: Zach
+      ip: "{{ vm_ip | default(ip_address) }}"
+      netmask: "{{ vm_networks.vmware.network | ansible.utils.ipaddr('netmask') }}"
+      gateway: "{{ vm_networks.vmware.gateway }}"
+    wait_for_ip_address: true
+
+- name: Set public IP
+  ansible.builtin.set_fact:
+    vm_public_ip: "{{ vm_ip }}"
+  when: vm_state == 'present'

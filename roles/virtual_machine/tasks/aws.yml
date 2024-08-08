@@ -1,0 +1,36 @@
+---
+- name: Provision EC2 instance
+  amazon.aws.ec2_instance:
+    name: "{{ vm_name }}"
+    state: "{{ vm_state }}"
+    instance_type: "{{ vm_hardware | default(omit) }}"
+    image_id: "{{ vm_image | default(omit) }}"
+    volumes:
+      - device_name: /dev/sda1
+        ebs:
+          volume_size: "{{ vm_disk_gb }}"
+          delete_on_termination: yes
+    vpc_subnet_id: "{{ vm_aws_subnet | default(omit) }}"
+    security_group: "{{ vm_aws_sg | default(omit) }}"
+    key_name: ansible
+    region: us-east-2
+    network:
+      assign_public_ip: yes
+      delete_on_termination: yes
+      private_ip_address: "{{ vm_ip | default(ip_address) }}"
+  register: ec2_out
+
+- name: Get public IP
+  amazon.aws.ec2_instance_info:
+    instance_ids: "{{ ec2_out.instance_ids }}"
+    region: us-east-2
+  until: ec2_info_out.instances.0.public_ip_address is defined
+  delay: 2
+  retries: 10
+  register: ec2_info_out
+  when: vm_state == 'present'
+
+- name: Set public IP
+  ansible.builtin.set_fact:
+    vm_public_ip: "{{ ec2_info_out.instances.0.public_ip_address }}"
+  when: vm_state == 'present'

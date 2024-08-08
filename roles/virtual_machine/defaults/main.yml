@@ -1,0 +1,7 @@
+---
+vm_disk_gb: 80
+vm_cloud: azure
+vm_size: small
+vm_name: ansible-1
+vm_os: linux-RHEL8
+vm_state: present

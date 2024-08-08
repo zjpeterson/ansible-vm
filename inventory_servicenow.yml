@@ -1,0 +1,17 @@
+---
+plugin: servicenow.itsm.now
+table: cmdb_ci_server
+columns:
+  - name
+  - ip_address
+  - manufacturer
+  - sys_id
+  - sys_class_name
+query:
+  - name: LIKE zach.lab
+groups:
+  linux: sys_class_name == 'Linux Server'
+  windows: sys_class_name == 'Windows Server'
+  google: manufacturer == 'Google Cloud'
+  azure: manufacturer == 'Azure'
+  vmware: manufacturer == 'VMWare'

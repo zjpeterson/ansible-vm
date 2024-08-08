@@ -1,0 +1,62 @@
+---
+- name: Determine VM details (build)
+  ansible.builtin.set_fact:
+    vm_ip: "{{ lookup('infoblox.nios_modules.nios_next_ip', vm_networks[vm_cloud]['network']) | first }}"
+    vm_hardware: "{{ vm_size_map[vm_cloud][vm_size] }}"
+    vm_image: "{{ vm_os_map[vm_cloud][vm_os] }}"
+  when: vm_state == 'present'
+
+- name: Determine VM details (unbuild)
+  ansible.builtin.set_fact:
+    vm_cloud: |-
+      {%- if manufacturer == 'Azure' -%}azure
+      {%- elif manufacturer == 'Google Cloud' -%}google
+      {%- elif manufacturer == 'Amazon Web Services' -%}aws
+      {%- elif manufacturer == 'VMWare' -%}vmware
+      {%- else -%}unknown
+      {%- endif -%}
+  when: vm_state == 'absent'
+
+- name: Platform-specific build
+  ansible.builtin.include_tasks: "{{ vm_cloud | default('unknown') }}.yml"
+
+- name: Register host in DNS
+  infoblox.nios_modules.nios_host_record:
+    name: "{{ vm_name }}.zach.lab"
+    state: present
+    configure_for_dns: no
+    ipv4:
+      - address: "{{ vm_ip }}"
+    provider:
+      host:
+      username:
+      password:
+  when: vm_state == 'present'
+
+- name: Unregister host in DNS
+  infoblox.nios_modules.nios_host_record:
+    name: "{{ vm_name }}.zach.lab"
+    state: absent
+    configure_for_dns: no
+    provider:
+      host:
+      username:
+      password:
+  when: vm_state == 'absent'
+
+- name: Update CMDB
+  servicenow.itsm.configuration_item:
+    name: "{{ vm_name }}.zach.lab"
+    state: "{{ vm_state }}"
+    ip_address: "{{ vm_public_ip | default(omit) }}"
+    other:
+      manufacturer: |-
+        {%- if vm_cloud == 'google' -%}Google Cloud{%- endif -%}
+        {%- if vm_cloud == 'azure' -%}Azure{%- endif -%}
+        {%- if vm_cloud == 'aws' -%}Amazon Web Services{%- endif -%}
+        {%- if vm_cloud == 'vmware' -%}VMWare{%- endif -%}
+    sys_class_name: |-
+      {%- if 'linux' in vm_os -%}cmdb_ci_linux_server
+      {%- elif 'windows' in vm_os -%}cmdb_ci_win_server
+      {%- else -%}cmdb_ci_server{%- endif -%}
+    sys_id: "{{ sys_id | default(omit) }}"

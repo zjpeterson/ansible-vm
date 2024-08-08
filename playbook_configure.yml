@@ -1,0 +1,33 @@
+---
+- name: Configure new server
+  hosts: "{{ vm_name }}.zach.lab"
+  gather_facts: no
+
+  tasks:
+    - name: Wait for server to be available
+      ansible.builtin.wait_for_connection:
+
+    - name: Gather facts
+      ansible.builtin.setup:
+        gather_subset: min
+
+    - name: Update CMDB with version information
+      servicenow.itsm.configuration_item:
+        other:
+          os: |-
+            {%- if ansible_distribution == 'RedHat' -%}Linux Red Hat
+            {%- elif 'Microsoft Windows' in ansible_distribution -%}Windows
+            {%- else -%}''{%- endif -%}
+          os_version: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
+        sys_id: "{{ sys_id }}"
+      delegate_to: localhost
+
+    - name: Linux configuration
+      ansible.builtin.include_tasks: tasks_linux.yml
+      when: "'linux' in vm_os"
+
+    - name: Windows configuration
+      ansible.windows.win_copy:
+        content: Ansible was here
+        dest: C:\Users\{{ ansible_user }}\Desktop\ansible.txt
+      when: "'windows' in vm_os"

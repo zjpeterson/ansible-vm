@@ -1,0 +1,22 @@
+---
+- name: Install web server
+  ansible.builtin.package:
+    name: httpd
+    state: present
+  become: yes
+
+- name: Start web server
+  ansible.builtin.service:
+    name: httpd
+    state: started
+  become: yes
+
+- name: Make a file
+  ansible.builtin.copy:
+    content: |
+      <html>
+      <h1>Configured by Ansible</h1>
+      </html>
+    dest: /var/www/html/index.html
+    mode: '755'
+  become: yes

@@ -1,0 +1,73 @@
+---
+- name: Create Azure Network Interface
+  azure.azcollection.azure_rm_networkinterface:
+    name: "{{ vm_name }}-if"
+    state: present
+    resource_group: "{{ vm_azure_rg }}"
+    virtual_network:  "{{ vm_azure_rg }}-vnet"
+    subnet_name: default
+    location: East US
+    ip_configurations:
+      - name: ipconfig1
+        private_ip_address: "{{ vm_ip }}"
+        public_ip_address_name: "{{ vm_name }}-ip"
+  when: vm_state == 'present'
+
+- name: Provision Azure VM
+  azure.azcollection.azure_rm_virtualmachine:
+    name: "{{ vm_name }}"
+    state: "{{ vm_state }}"
+    resource_group: "{{ vm_azure_rg }}"
+    vm_size: "{{ vm_hardware | default(omit) }}"
+    admin_username: ansible
+    admin_password: R3dH@t!1
+    os_disk_size_gb: "{{ vm_disk_gb }}"
+    managed_disk_type: StandardSSD_LRS
+    image: "{{ vm_image | default(omit) }}"
+    network_interfaces: "{{ vm_name }}-if"
+    location: East US
+    os_type: "{% if 'windows' in vm_os %}Windows{% else %}Linux{% endif %}"
+
+- name: Get public IP
+  azure.azcollection.azure_rm_publicipaddress_info:
+    name: "{{ vm_name }}-ip"
+    resource_group: "{{ vm_azure_rg }}"
+  until: azure_ip_out.publicipaddresses.0.ip_address != None
+  retries: 10
+  when: vm_state == 'present'
+  register: azure_ip_out
+
+- name: Set public IP
+  ansible.builtin.set_fact:
+    vm_public_ip: "{{ azure_ip_out.publicipaddresses.0.ip_address }}"
+  when: vm_state == 'present'
+
+- name: Configure WinRM
+  azure.azcollection.azure_rm_virtualmachineextension:
+    name: "{{ vm_name }}-ext"
+    state: "{{ vm_state }}"
+    resource_group: "{{ vm_azure_rg }}"
+    virtual_machine_name: "{{ vm_name }}"
+    publisher: Microsoft.Compute
+    virtual_machine_extension_type: CustomScriptExtension
+    type_handler_version: 1.10
+    settings: |
+      {
+        "fileUris": ["https://raw.githubusercontent.com/ansible/ansible/v2.13.0/examples/scripts/ConfigureRemotingForAnsible.ps1"],
+        "commandToExecute": "powershell.exe -ExecutionPolicy ByPass -File ConfigureRemotingForAnsible.ps1"
+      }
+  when: "'windows' in vm_os"
+
+- name: Add WinRM to Security Group
+  azure.azcollection.azure_rm_securitygroup:
+    name: "{{ vm_name }}-nsg"
+    state: "{{ vm_state }}"
+    resource_group: "{{ vm_azure_rg }}"
+    rules:
+      - name: WinRM
+        priority: 310
+        protocol: Tcp
+        destination_port_range: 5986
+        access: Allow
+        direction: Inbound
+  when: "'windows' in vm_os"

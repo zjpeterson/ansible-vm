@@ -1,0 +1,26 @@
+---
+- name: Provision Google Cloud VM
+  google.cloud.gcp_compute_instance:
+    name: "{{ vm_name }}"
+    state: "{{ vm_state }}"
+    project: "{{ vm_google_project }}"
+    machine_type: "{{ vm_hardware | default(omit) }}"
+    disks:
+    - auto_delete: yes
+      boot: yes
+      initialize_params:
+        disk_size_gb: "{{ vm_disk_gb }}"
+        source_image: "{{ vm_image | default(omit) }}"
+    network_interfaces:
+    - network_ip: "{{ vm_ip }}"
+      access_configs:
+      - name: External NAT
+        type: ONE_TO_ONE_NAT
+    zone: us-central1-a
+    auth_kind: serviceaccount
+  register: google_vm_out
+
+- name: Set public IP
+  ansible.builtin.set_fact:
+    vm_public_ip: "{{ google_vm_out.networkInterfaces.0.accessConfigs.0.natIP }}"
+  when: vm_state == 'present'

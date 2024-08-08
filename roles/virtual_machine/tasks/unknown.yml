@@ -1,0 +1,4 @@
+---
+- name: Fail due to unknown cloud
+  ansible.builtin.fail:
+    msg: Target cloud not known

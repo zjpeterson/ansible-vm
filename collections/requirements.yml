@@ -1,0 +1,9 @@
+---
+collections:
+  - google.cloud
+  - azure.azcollection
+  - ansible.utils
+  - infoblox.nios_modules
+  - community.vmware
+  - ansible.windows
+  - amazon.aws
